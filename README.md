@@ -1,65 +1,47 @@
-# Meridian — Deploy en Netlify
+# Meridian — Investment Intelligence Dashboard
 
-## ⚠️ Importante
-Netlify necesita GitHub para que las serverless functions funcionen.
-El drag & drop NO soporta functions y la app necesita una function
-para conectarse a Anthropic (por CORS del navegador).
+## Deploy en Netlify
 
-## Paso 1 — Probar en local
+### Opción 1: GitHub (recomendada)
 
 ```bash
-cd meridian-project
-npm install
-npm install -g netlify-cli
-```
-
-Creá un archivo `.env` en la raíz:
-```
-ANTHROPIC_API_KEY=sk-ant-tu-clave-aca
-```
-
-Levantalo con:
-```bash
-netlify dev
-```
-
-Se abre en http://localhost:8888 con todo funcionando.
-
-## Paso 2 — Subir a GitHub
-
-Creá un repo en github.com/new llamado `meridian`.
-
-```bash
+cd meridian-deploy
 git init
 git add .
-git commit -m "Meridian v1"
-git branch -M main
-git remote add origin https://github.com/TU-USUARIO/meridian.git
+git commit -m "Meridian v2"
+git remote add origin https://github.com/TU_USUARIO/meridian.git
 git push -u origin main
 ```
 
-## Paso 3 — Deploy en Netlify
+Después en Netlify:
+1. New site → Import from Git → tu repo
+2. Build command: `npm run build`
+3. Publish directory: `dist`
+4. (Opcional) En Site Settings → Environment Variables → agregar `ANTHROPIC_API_KEY`
 
-1. app.netlify.com → "Add new site" → "Import from GitHub"
-2. Seleccioná el repo `meridian`
-3. Build command: `npm run build` / Publish: `dist`
-4. Deploy
+### Opción 2: Netlify CLI
 
-## Paso 4 — API Key
+```bash
+cd meridian-deploy
+npm install
+npm run build
+npx netlify-cli deploy --build --prod
+```
 
-Dos opciones (elegí una):
+### Opción 3: Local
 
-**Opción A — Desde el navegador (más fácil):**
-Abrí la app → te pide la key → pegala → listo.
-Queda guardada en tu navegador.
+```bash
+cd meridian-deploy
+npm install
+npm install -g netlify-cli
+echo "ANTHROPIC_API_KEY=tu-key-aqui" > .env
+netlify dev
+```
 
-**Opción B — Variable de entorno (más seguro):**
-Site configuration → Environment variables → Add:
-- Key: `ANTHROPIC_API_KEY`
-- Value: `sk-ant-...`
-Trigger deploy. Con esto nadie necesita poner key.
+Abre http://localhost:8888
 
-## PWA — Instalar en celular
+## API Key
 
-- iPhone: Safari → Compartir → "Agregar a inicio"
-- Android: Chrome → Menú → "Instalar app"
+La app acepta API key de dos formas:
+1. **Variable de entorno** `ANTHROPIC_API_KEY` en Netlify (recomendada)
+2. **Ingreso manual** en la pantalla de inicio (se guarda en localStorage del navegador)
