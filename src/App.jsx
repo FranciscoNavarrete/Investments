@@ -272,7 +272,7 @@ export default function App() {
   const loadRV = useCallback(async()=>{ setRvL(true);setRvE(false);try{ const r=await askClaude([{role:"user",content:"Renta variable hoy. SOLO JSON."}],RV_SYS);setRv(parse(r));}catch(e){console.error("RV:",e);setRvE(true);}setRvL(false); },[]);
   const loadCal = useCallback(async()=>{ setCalL(true);setCalE(false);try{ const r=await askClaude([{role:"user",content:"Calendario económico próximos 15 días inversor argentino. SOLO JSON."}],CAL_SYS);setCal(parse(r));}catch(e){console.error("Cal:",e);setCalE(true);}setCalL(false); },[]);
 
-  useEffect(()=>{loadDaily();loadHome();},[loadDaily,loadHome]);
+  useEffect(()=>{loadDaily(); const t=setTimeout(()=>loadHome(),5000); return ()=>clearTimeout(t);},[loadDaily,loadHome]);
   useEffect(()=>{if(tab==="fija"&&!rf&&!rfL)loadRF();},[tab,rf,rfL,loadRF]);
   useEffect(()=>{if(tab==="variable"&&!rv&&!rvL)loadRV();},[tab,rv,rvL,loadRV]);
   useEffect(()=>{if(tab==="calendario"&&!cal&&!calL)loadCal();},[tab,cal,calL,loadCal]);
