@@ -350,9 +350,8 @@ export default function App() {
         <div style={{ fontSize:11, color:"#4B6FA0", marginBottom:10, wordBreak:"break-all" }}>{getApiKey().slice(0,12)}...{getApiKey().slice(-6)}</div>
         <button onClick={clearKey} style={{ width:"100%", padding:10, borderRadius:8, border:"1px solid rgba(251,113,133,.15)", background:"rgba(251,113,133,.04)", color:"#FB7185", fontSize:12, fontWeight:600, cursor:"pointer" }}>Cambiar API Key</button>
       </div>}
-      </div>
 
-      {/* TABS */}
+        {/* TABS */}
       {!view && <div style={{ display:"flex", borderBottom:"1px solid rgba(59,130,246,.04)", background:"rgba(0,0,0,.6)", flexShrink:0, zIndex:15, overflowX:"auto" }}>
         {TABS.map(t=><button key={t.id} onClick={()=>{if(t.id==="perfil")openWiz();else setTab(t.id);}}
           style={{ flex:1, padding:"10px 0", background:"none", border:"none", borderBottom:`2px solid ${tab===t.id?"rgba(59,130,246,.5)":"transparent"}`, color:tab===t.id?"#7CB3FF":"#2A4A7A", fontSize:10, fontWeight:600, fontFamily:"'Azeret Mono',monospace", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:1, minWidth:65, transition:"all .15s" }}>
