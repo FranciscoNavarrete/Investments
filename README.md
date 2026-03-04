@@ -1,48 +1,35 @@
-# Meridian — Deploy en Netlify (paso a paso)
+# Meridian — Deploy en Netlify
 
-## Requisitos previos
+## ⚠️ Importante
+Netlify necesita GitHub para que las serverless functions funcionen.
+El drag & drop NO soporta functions y la app necesita una function
+para conectarse a Anthropic (por CORS del navegador).
 
-1. Una cuenta en [Netlify](https://netlify.com) (gratis)
-2. Una cuenta en [GitHub](https://github.com) (gratis)
-3. Una API key de [Anthropic](https://console.anthropic.com) (necesitás créditos)
-4. Node.js instalado en tu computadora — descargalo de https://nodejs.org (versión LTS)
-5. Git instalado — descargalo de https://git-scm.com
-
-Para verificar que tenés todo instalado, abrí la terminal y ejecutá:
-
-```
-node --version
-git --version
-```
-
-Si ves números de versión, estás bien.
-
----
-
-## Paso 1 — Probalo en tu computadora
-
-Abrí la terminal, navegá a la carpeta del proyecto y ejecutá:
+## Paso 1 — Probar en local
 
 ```bash
 cd meridian-project
 npm install
-npm run dev
+npm install -g netlify-cli
 ```
 
-Se va a abrir en http://localhost:5173. NOTA: en local no va a funcionar la
-conexión con la API porque la API key se configura en Netlify. Esto es normal.
+Creá un archivo `.env` en la raíz:
+```
+ANTHROPIC_API_KEY=sk-ant-tu-clave-aca
+```
 
----
+Levantalo con:
+```bash
+netlify dev
+```
 
-## Paso 2 — Subí el proyecto a GitHub
+Se abre en http://localhost:8888 con todo funcionando.
 
-2.1. Andá a https://github.com/new y creá un repositorio nuevo llamado `meridian`
-(dejalo público o privado, como quieras). NO marques "Add README".
+## Paso 2 — Subir a GitHub
 
-2.2. En tu terminal, dentro de la carpeta del proyecto:
+Creá un repo en github.com/new llamado `meridian`.
 
 ```bash
-cd meridian-project
 git init
 git add .
 git commit -m "Meridian v1"
@@ -51,110 +38,28 @@ git remote add origin https://github.com/TU-USUARIO/meridian.git
 git push -u origin main
 ```
 
-Reemplazá `TU-USUARIO` con tu nombre de usuario de GitHub.
+## Paso 3 — Deploy en Netlify
 
----
+1. app.netlify.com → "Add new site" → "Import from GitHub"
+2. Seleccioná el repo `meridian`
+3. Build command: `npm run build` / Publish: `dist`
+4. Deploy
 
-## Paso 3 — Conectá con Netlify
+## Paso 4 — API Key
 
-3.1. Andá a https://app.netlify.com y logueate.
+Dos opciones (elegí una):
 
-3.2. Hacé click en **"Add new site"** → **"Import an existing project"**.
+**Opción A — Desde el navegador (más fácil):**
+Abrí la app → te pide la key → pegala → listo.
+Queda guardada en tu navegador.
 
-3.3. Elegí **GitHub** y autorizá el acceso.
+**Opción B — Variable de entorno (más seguro):**
+Site configuration → Environment variables → Add:
+- Key: `ANTHROPIC_API_KEY`
+- Value: `sk-ant-...`
+Trigger deploy. Con esto nadie necesita poner key.
 
-3.4. Seleccioná el repositorio `meridian`.
+## PWA — Instalar en celular
 
-3.5. Netlify va a autodetectar la configuración. Verificá que diga:
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-
-3.6. Hacé click en **"Deploy site"**.
-
----
-
-## Paso 4 — Configurá tu API Key (MUY IMPORTANTE)
-
-4.1. En Netlify, andá a tu sitio → **Site configuration** → **Environment variables**.
-
-4.2. Hacé click en **"Add a variable"**.
-
-4.3. Completá:
-   - Key: `ANTHROPIC_API_KEY`
-   - Value: tu API key de Anthropic (empieza con `sk-ant-...`)
-
-4.4. Guardá.
-
-4.5. Andá a **Deploys** → hacé click en **"Trigger deploy"** → **"Deploy site"**
-para que tome la nueva variable.
-
----
-
-## Paso 5 — ¡Listo!
-
-Tu app va a estar disponible en una URL tipo:
-`https://meridian-xxxxx.netlify.app`
-
-Podés cambiar el nombre en **Site configuration** → **Change site name**.
-
----
-
-## Paso 6 — Instalalo como PWA en tu celular
-
-### iPhone (Safari):
-1. Abrí la URL de tu app en Safari
-2. Tocá el ícono de compartir (cuadrado con flecha)
-3. Elegí **"Agregar a inicio"**
-4. Confirmá el nombre y tocá **"Agregar"**
-
-### Android (Chrome):
-1. Abrí la URL en Chrome
-2. Tocá el menú (3 puntos arriba a la derecha)
-3. Elegí **"Instalar app"** o **"Agregar a pantalla de inicio"**
-4. Confirmá
-
-La app se va a abrir como si fuera nativa, sin barra de navegador.
-
----
-
-## Estructura del proyecto
-
-```
-meridian-project/
-├── index.html              ← Página principal
-├── netlify.toml            ← Configuración de Netlify
-├── package.json            ← Dependencias
-├── vite.config.js          ← Config de Vite
-├── public/
-│   ├── favicon.svg         ← Ícono del navegador
-│   ├── icon-192.png        ← Ícono PWA chico
-│   ├── icon-512.png        ← Ícono PWA grande
-│   ├── manifest.json       ← Manifiesto PWA
-│   └── sw.js               ← Service Worker (offline)
-├── netlify/
-│   └── functions/
-│       └── chat.mjs        ← Función serverless (protege tu API key)
-└── src/
-    ├── main.jsx            ← Entrada de React
-    └── App.jsx             ← La app completa
-```
-
-## Costos
-
-- **Netlify**: Gratis (125k function calls/mes en el plan free)
-- **Anthropic API**: Pagás por uso. Claude Sonnet cuesta ~$3/millón de tokens de entrada
-  y ~$15/millón de salida. Una consulta típica cuesta ~$0.01-0.05.
-
----
-
-## Troubleshooting
-
-**"API key not configured"**: Revisá que la variable ANTHROPIC_API_KEY esté bien
-configurada en Netlify y hacé un nuevo deploy.
-
-**No carga nada**: Abrí las DevTools del navegador (F12) → Console y fijate si hay
-errores. Lo más común es que la API key no esté configurada.
-
-**No se instala como PWA**: Asegurate de estar usando HTTPS (Netlify lo da automático).
-En iPhone usá Safari, en Android usá Chrome.
-"# Investments" 
+- iPhone: Safari → Compartir → "Agregar a inicio"
+- Android: Chrome → Menú → "Instalar app"
