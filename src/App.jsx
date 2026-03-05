@@ -38,10 +38,13 @@ const DAILY_SYS = `Eres Meridian. Hoy ${D}. Buscá info ACTUAL con web search so
 SOLO JSON PURO:{"titulo":"qué pasó hoy en 1 oración","detalle":"2 oraciones resumen","manana":"1 oración qué mirar mañana","fuentes":["f1","f2"]}
 Foco argentino. SOLO JSON.`;
 
-const HOME_SYS = `Eres Meridian, analista institucional argentino. Hoy ${D}. Buscá info ACTUAL con web search.
-Devolvé SOLO JSON PURO (sin backticks, sin markdown):
-{"macro":{"fase":"...","sentimiento":"risk-on/risk-off/mixto","resumen":"2 oraciones"},"oportunidades":[{"rank":1,"activo":"...","ticker":"...","clase":"...","tesis":"1 oración","horizonte":"corto/mediano/largo","riesgo":"bajo/medio/alto","señal":"compra/acumular/watchlist","fuente":"..."},...(6)],"tendencias":[{"sector":"...","direccion":"alcista/bajista/lateral","motivo":"1 oración","picks":[{"activo":"...","ticker":"...","tesis":"1 oración","riesgo":"bajo/medio/alto"},...(4)],"fuente":"..."},...(5)],"riesgos":["..","..",".."],"fuentes_generales":["f1","f2","f3"]}
-Foco argentino: cauciones, CEDEARs, acciones arg, plazo fijo, FCIs. DATOS REALES. SOLO JSON.`;
+const MACRO_SYS = `Eres Meridian, analista argentino. Hoy ${D}. Buscá info ACTUAL con web search.
+SOLO JSON PURO:{"macro":{"fase":"...","sentimiento":"risk-on/risk-off/mixto","resumen":"2 oraciones"},"riesgos":["..","..",".."],"fuentes":["f1","f2"]}
+Foco argentino. SOLO JSON.`;
+
+const OPPS_SYS = `Eres Meridian, analista argentino. Hoy ${D}. Buscá info ACTUAL con web search.
+SOLO JSON PURO:{"oportunidades":[{"rank":1,"activo":"...","ticker":"...","clase":"...","tesis":"1 oración","horizonte":"corto/mediano/largo","riesgo":"bajo/medio/alto","señal":"compra/acumular/watchlist","fuente":"..."},...(6)],"tendencias":[{"sector":"...","direccion":"alcista/bajista/lateral","motivo":"1 oración","picks":[{"activo":"...","ticker":"...","tesis":"1 oración","riesgo":"bajo/medio/alto"},...(3)],"fuente":"..."},...(4)]}
+Foco: cauciones, CEDEARs, acciones arg, plazo fijo, FCIs. DATOS REALES. SOLO JSON.`;
 
 const RF_SYS = `Eres Meridian, analista de renta fija argentino. Hoy ${D}. Buscá info ACTUAL con web search.
 SOLO JSON PURO (sin backticks):
@@ -251,7 +254,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [tab, setTab] = useState("home");
   const [daily, setDaily] = useState(null); const [dL, setDL] = useState(true);
-  const [hd, setHd] = useState(null); const [hL, setHL] = useState(true); const [hE, setHE] = useState(false);
+  const [macro, setMacro] = useState(null); const [macL, setMacL] = useState(true); const [macE, setMacE] = useState(false);
+  const [opps, setOpps] = useState(null); const [opL, setOpL] = useState(true); const [opE, setOpE] = useState(false);
   const [rf, setRf] = useState(null); const [rfL, setRfL] = useState(false); const [rfE, setRfE] = useState(false);
   const [rv, setRv] = useState(null); const [rvL, setRvL] = useState(false); const [rvE, setRvE] = useState(false);
   const [cal, setCal] = useState(null); const [calL, setCalL] = useState(false); const [calE, setCalE] = useState(false);
@@ -267,16 +271,19 @@ export default function App() {
     return cleanObj(JSON.parse(c));
   };
   const loadDaily = useCallback(async()=>{ setDL(true);try{ const r=await askClaude([{role:"user",content:"Resumen mercados hoy. SOLO JSON."}],DAILY_SYS);setDaily(parse(r));}catch(e){console.error("Daily:",e);}setDL(false); },[]);
-  const loadHome = useCallback(async()=>{ setHL(true);setHE(false);try{ const r=await askClaude([{role:"user",content:"Dashboard mercado. SOLO JSON."}],HOME_SYS);setHd(parse(r));}catch(e){console.error("Home:",e);setHE(true);}setHL(false); },[]);
+  const loadMacro = useCallback(async()=>{ setMacL(true);setMacE(false);try{ const r=await askClaude([{role:"user",content:"Macro y riesgos hoy. SOLO JSON."}],MACRO_SYS);setMacro(parse(r));}catch(e){console.error("Macro:",e);setMacE(true);}setMacL(false); },[]);
+  const loadOpps = useCallback(async()=>{ setOpL(true);setOpE(false);try{ const r=await askClaude([{role:"user",content:"Oportunidades y tendencias. SOLO JSON."}],OPPS_SYS);setOpps(parse(r));}catch(e){console.error("Opps:",e);setOpE(true);}setOpL(false); },[]);
   const loadRF = useCallback(async()=>{ setRfL(true);setRfE(false);try{ const r=await askClaude([{role:"user",content:"Renta fija hoy. SOLO JSON."}],RF_SYS);setRf(parse(r));}catch(e){console.error("RF:",e);setRfE(true);}setRfL(false); },[]);
   const loadRV = useCallback(async()=>{ setRvL(true);setRvE(false);try{ const r=await askClaude([{role:"user",content:"Renta variable hoy. SOLO JSON."}],RV_SYS);setRv(parse(r));}catch(e){console.error("RV:",e);setRvE(true);}setRvL(false); },[]);
   const loadCal = useCallback(async()=>{ setCalL(true);setCalE(false);try{ const r=await askClaude([{role:"user",content:"Calendario económico próximos 15 días inversor argentino. SOLO JSON."}],CAL_SYS);setCal(parse(r));}catch(e){console.error("Cal:",e);setCalE(true);}setCalL(false); },[]);
 
-useEffect(()=>{
-  loadDaily();
-  const t1=setTimeout(()=>loadHome(),8000);
-  return ()=>{clearTimeout(t1);};
-},[loadDaily,loadHome]);  useEffect(()=>{if(tab==="fija"&&!rf&&!rfL)loadRF();},[tab,rf,rfL,loadRF]);
+  useEffect(()=>{
+    loadDaily();
+    const t1=setTimeout(()=>loadMacro(),10000);
+    const t2=setTimeout(()=>loadOpps(),22000);
+    return ()=>{clearTimeout(t1);clearTimeout(t2);};
+  },[loadDaily,loadMacro,loadOpps]);
+  useEffect(()=>{if(tab==="fija"&&!rf&&!rfL)loadRF();},[tab,rf,rfL,loadRF]);
   useEffect(()=>{if(tab==="variable"&&!rv&&!rvL)loadRV();},[tab,rv,rvL,loadRV]);
   useEffect(()=>{if(tab==="calendario"&&!cal&&!calL)loadCal();},[tab,cal,calL,loadCal]);
 
@@ -390,39 +397,39 @@ useEffect(()=>{
             {/* Macro */}
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
               <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:16, fontWeight:600, color:"#D6E4F7" }}>Macro</h2>
-              {!hL&&<button className="ref" onClick={()=>{setHd(null);setDaily(null);loadDaily();loadHome();}} style={{ background:"rgba(59,130,246,.03)", border:"1px solid rgba(59,130,246,.06)", borderRadius:7, padding:"3px 10px", fontSize:10, color:"#3B6EB5", fontFamily:"'Azeret Mono',monospace" }}>↻</button>}
+              {!macL&&<button className="ref" onClick={()=>{setMacro(null);setOpps(null);setDaily(null);loadDaily();setTimeout(()=>loadMacro(),10000);setTimeout(()=>loadOpps(),22000);}} style={{ background:"rgba(59,130,246,.03)", border:"1px solid rgba(59,130,246,.06)", borderRadius:7, padding:"3px 10px", fontSize:10, color:"#3B6EB5", fontFamily:"'Azeret Mono',monospace" }}>↻</button>}
             </div>
-            {hL ? <div style={{ background:"rgba(255,255,255,.02)", border:"1px solid rgba(59,130,246,.04)", borderRadius:14, padding:18, marginBottom:16 }}><Sk w="30%" h={14}/><div style={{height:7}}/><Sk w="100%" h={12}/></div>
-            : hE ? <Err onRetry={()=>{setHE(false);setHd(null);loadHome();}}/>
-            : hd?.macro && <div style={{ background:"rgba(255,255,255,.02)", border:"1px solid rgba(59,130,246,.04)", borderRadius:14, padding:16, marginBottom:16, animation:"fadeIn .5s" }}>
+            {macL ? <div style={{ background:"rgba(255,255,255,.02)", border:"1px solid rgba(59,130,246,.04)", borderRadius:14, padding:18, marginBottom:16 }}><Sk w="30%" h={14}/><div style={{height:7}}/><Sk w="100%" h={12}/></div>
+            : macE ? <Err onRetry={()=>{setMacE(false);setMacro(null);loadMacro();}}/>
+            : macro?.macro && <div style={{ background:"rgba(255,255,255,.02)", border:"1px solid rgba(59,130,246,.04)", borderRadius:14, padding:16, marginBottom:16, animation:"fadeIn .5s" }}>
               <div style={{ display:"flex", gap:6, marginBottom:8, flexWrap:"wrap" }}>
-                <span style={{ background:"rgba(59,130,246,.07)", color:"#7CB3FF", padding:"3px 10px", borderRadius:18, fontSize:10, fontWeight:600, fontFamily:"'Azeret Mono',monospace" }}>{hd.macro.fase?.toUpperCase()}</span>
-                <span style={{ background:hd.macro.sentimiento?.includes("off")?"rgba(251,113,133,.06)":"rgba(52,211,153,.06)", color:hd.macro.sentimiento?.includes("off")?"#FB7185":"#34D399", padding:"3px 10px", borderRadius:18, fontSize:10, fontWeight:600, fontFamily:"'Azeret Mono',monospace" }}>{hd.macro.sentimiento?.toUpperCase()}</span>
+                <span style={{ background:"rgba(59,130,246,.07)", color:"#7CB3FF", padding:"3px 10px", borderRadius:18, fontSize:10, fontWeight:600, fontFamily:"'Azeret Mono',monospace" }}>{macro.macro.fase?.toUpperCase()}</span>
+                <span style={{ background:macro.macro.sentimiento?.includes("off")?"rgba(251,113,133,.06)":"rgba(52,211,153,.06)", color:macro.macro.sentimiento?.includes("off")?"#FB7185":"#34D399", padding:"3px 10px", borderRadius:18, fontSize:10, fontWeight:600, fontFamily:"'Azeret Mono',monospace" }}>{macro.macro.sentimiento?.toUpperCase()}</span>
               </div>
-              <p style={{ fontSize:13, lineHeight:1.65, color:"#8A9DB8" }}>{hd.macro.resumen}</p>
+              <p style={{ fontSize:13, lineHeight:1.65, color:"#8A9DB8" }}>{macro.macro.resumen}</p>
             </div>}
 
             {/* Oportunidades */}
             <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:16, fontWeight:600, color:"#D6E4F7", marginBottom:10 }}>Top Oportunidades</h2>
-            {hL ? <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(255px,1fr))", gap:10, marginBottom:16 }}>{[...Array(6)].map((_,i)=><SkCard key={i}/>)}</div>
-            : hd?.oportunidades && <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(255px,1fr))", gap:10, marginBottom:16, animation:"fadeIn .5s" }}>{hd.oportunidades.map((o,i)=><AssetCard key={i} item={o}/>)}</div>}
+            {opL ? <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(255px,1fr))", gap:10, marginBottom:16 }}>{[...Array(6)].map((_,i)=><SkCard key={i}/>)}</div>
+            : opps?.oportunidades && <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(255px,1fr))", gap:10, marginBottom:16, animation:"fadeIn .5s" }}>{opps.oportunidades.map((o,i)=><AssetCard key={i} item={o}/>)}</div>}
 
             {/* Tendencias */}
             <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:16, fontWeight:600, color:"#D6E4F7", marginBottom:10 }}>Tendencias</h2>
-            {hL ? <div style={{ marginBottom:16 }}>{[...Array(4)].map((_,i)=><div key={i} style={{ background:"rgba(255,255,255,.02)", border:"1px solid rgba(59,130,246,.04)", borderRadius:12, padding:14, marginBottom:6 }}><Sk w="35%" h={14}/><div style={{height:5}}/><Sk w="80%" h={12}/></div>)}</div>
-            : hd?.tendencias && <div style={{ marginBottom:16, animation:"fadeIn .5s" }}>{hd.tendencias.map((t,i)=><TrendCard key={i} trend={t} dir={DIR[t.direccion]||DIR.lateral}/>)}</div>}
+            {opL ? <div style={{ marginBottom:16 }}>{[...Array(4)].map((_,i)=><div key={i} style={{ background:"rgba(255,255,255,.02)", border:"1px solid rgba(59,130,246,.04)", borderRadius:12, padding:14, marginBottom:6 }}><Sk w="35%" h={14}/><div style={{height:5}}/><Sk w="80%" h={12}/></div>)}</div>
+            : opps?.tendencias && <div style={{ marginBottom:16, animation:"fadeIn .5s" }}>{opps.tendencias.map((t,i)=><TrendCard key={i} trend={t} dir={DIR[t.direccion]||DIR.lateral}/>)}</div>}
 
             {/* Riesgos */}
-            {hd?.riesgos&&!hL&& <div style={{ marginBottom:16, animation:"fadeIn .5s" }}>
+            {macro?.riesgos&&!macL&& <div style={{ marginBottom:16, animation:"fadeIn .5s" }}>
               <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:16, fontWeight:600, color:"#D6E4F7", marginBottom:10 }}>Riesgos</h2>
               <div style={{ background:"rgba(251,113,133,.02)", border:"1px solid rgba(251,113,133,.06)", borderRadius:14, padding:14 }}>
-                {hd.riesgos.map((r,i)=><div key={i} style={{ display:"flex", gap:10, padding:"6px 0", borderBottom:i<hd.riesgos.length-1?"1px solid rgba(255,255,255,.02)":"none" }}>
+                {macro.riesgos.map((r,i)=><div key={i} style={{ display:"flex", gap:10, padding:"6px 0", borderBottom:i<macro.riesgos.length-1?"1px solid rgba(255,255,255,.02)":"none" }}>
                   <span style={{ width:18, height:18, borderRadius:5, background:"rgba(251,113,133,.06)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, color:"#FB7185", fontWeight:700, flexShrink:0 }}>{i+1}</span>
                   <span style={{ fontSize:12.5, color:"#8A9DB8", lineHeight:1.5 }}>{r}</span>
                 </div>)}
               </div>
             </div>}
-            {hd?.fuentes_generales && !hL && <Sources list={hd.fuentes_generales}/>}
+            {macro?.fuentes && !macL && <Sources list={macro.fuentes}/>}
           </>}
 
           {/* ──── RENTA FIJA ──── */}
