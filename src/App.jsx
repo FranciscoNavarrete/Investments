@@ -7,7 +7,7 @@ function getApiKey() { return localStorage.getItem("meridian_api_key") || ""; }
 function setApiKey(k) { localStorage.setItem("meridian_api_key", k); }
 
 async function askClaude(msgs, sys) {
-  const body = { model: "claude-sonnet-4-20250514", max_tokens: 8192, system: sys, messages: msgs, tools: [{ type: "web_search_20250305", name: "web_search" }] };
+  const body = { model: "claude-haiku-4-5-20251001", max_tokens: 4096, system: sys, messages: msgs, tools: [{ type: "web_search_20250305", name: "web_search" }] };
   const key = getApiKey();
   if (key) body.apiKey = key;
   const r = await fetch(API_URL, {
@@ -19,7 +19,7 @@ async function askClaude(msgs, sys) {
   return (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
 }
 async function askClaudeFast(msgs, sys) {
-  const body = { model: "claude-sonnet-4-20250514", max_tokens: 4096, system: sys, messages: msgs };
+  const body = { model: "claude-haiku-4-5-20251001", max_tokens: 4096, system: sys, messages: msgs };
   const key = getApiKey();
   if (key) body.apiKey = key;
   const r = await fetch(API_URL, {
@@ -34,7 +34,7 @@ async function askClaudeFast(msgs, sys) {
 const D = new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
 
 /* ═══ PROMPTS ═══ */
-const DAILY_SYS = `Eres Meridian. Hoy ${D}. Buscá 1 web search rápido sobre mercados hoy.
+const DAILY_SYS = `Eres Meridian. Hoy ${D}. Buscá info ACTUAL con web search sobre mercados.
 SOLO JSON PURO:{"titulo":"qué pasó hoy en 1 oración","detalle":"2 oraciones resumen","manana":"1 oración qué mirar mañana","fuentes":["f1","f2"]}
 Foco argentino. SOLO JSON.`;
 
@@ -57,7 +57,7 @@ const CAL_SYS = `Eres Meridian. Hoy ${D}. Listá los próximos eventos económic
 SOLO JSON PURO:{"eventos":[{"fecha":"DD/MM","titulo":"...","pais":"AR/US/EU","impacto":"alto/medio/bajo","detalle":"1 oración","tipo":"tasa/dato macro/earnings/vencimiento/licitación"},...(12)],"fuentes":["investing.com","bcra.gob.ar"]}
 Incluí: Fed, BCRA, inflación AR/US, licitaciones Tesoro, vencimientos, earnings. SOLO JSON.`;
 
-const RES_SYS = `Eres Meridian, analista institucional. Hoy ${D}. Buscá info actualizada.
+const RES_SYS = `Eres Meridian, analista institucional. Hoy ${D}. Buscá info ACTUAL con web search.
 NO uses etiquetas HTML de citación. Solo markdown.
 FORMATO:
 ## 📊 Estrategia
@@ -272,7 +272,7 @@ export default function App() {
   const loadRV = useCallback(async()=>{ setRvL(true);setRvE(false);try{ const r=await askClaude([{role:"user",content:"Renta variable hoy. SOLO JSON."}],RV_SYS);setRv(parse(r));}catch(e){console.error("RV:",e);setRvE(true);}setRvL(false); },[]);
   const loadCal = useCallback(async()=>{ setCalL(true);setCalE(false);try{ const r=await askClaude([{role:"user",content:"Calendario económico próximos 15 días inversor argentino. SOLO JSON."}],CAL_SYS);setCal(parse(r));}catch(e){console.error("Cal:",e);setCalE(true);}setCalL(false); },[]);
 
-  useEffect(()=>{loadDaily(); const t=setTimeout(()=>loadHome(),5000); return ()=>clearTimeout(t);},[loadDaily,loadHome]);
+  useEffect(()=>{loadDaily();loadHome();},[loadDaily,loadHome]);
   useEffect(()=>{if(tab==="fija"&&!rf&&!rfL)loadRF();},[tab,rf,rfL,loadRF]);
   useEffect(()=>{if(tab==="variable"&&!rv&&!rvL)loadRV();},[tab,rv,rvL,loadRV]);
   useEffect(()=>{if(tab==="calendario"&&!cal&&!calL)loadCal();},[tab,cal,calL,loadCal]);
