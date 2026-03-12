@@ -146,16 +146,16 @@ async function setCache(key, data) {
 
 /* ═══ AGENTS ═══ */
 
-// Data Agent: datos de mercado (sin web search - usa conocimiento del modelo)
+// Data Agent: datos de mercado (ÚNICA llamada con web search, se cachea 30 min)
 async function dataAgent(apiKey) {
   const cached = await getCache("market_data");
   if (cached) return cached;
 
   const raw = await callClaude(apiKey, {
     model: HAIKU,
-    system: "Eres un recolector de datos financieros argentinos. Devolvé datos lo más actuales posible. SOLO JSON.",
+    system: "Eres un recolector de datos financieros argentinos. Buscá datos actuales con web search. SOLO JSON.",
     userMsg: DATA_PROMPT,
-    webSearch: false,
+    webSearch: true,
     maxTokens: 2048,
   });
 
