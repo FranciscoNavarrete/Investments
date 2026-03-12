@@ -26,7 +26,7 @@ const CORS = {
 
 /* ═══ PROMPTS POR AGENTE ═══ */
 
-// DATA AGENT: Solo busca datos crudos de mercado (usa web search)
+// DATA AGENT: Solo busca datos crudos de mercado
 const DATA_PROMPT = `Hoy ${D}. Datos de mercado argentino y global.
 SOLO JSON:
 {"indices":{"sp500":"val","merval":"val","ccl":"val"},"tasas":{"bcra":"x%","caucion_1d":"x%","caucion_7d":"x%","plazo_fijo":"x%"},"bonos":{"al30":"precio","gd35":"precio"},"acciones":{"ggal":"precio","ypf":"precio","vist":"precio","pamp":"precio"},"dolar":{"oficial":"x","mep":"x","ccl":"x"},"noticias":["noticia1","noticia2"]}
@@ -146,20 +146,59 @@ async function setCache(key, data) {
 
 /* ═══ AGENTS ═══ */
 
-// Data Agent: datos de mercado (ÚNICA llamada con web search, se cachea 30 min)
+// Data Agent: DATOS REALES de APIs gratuitas (0 tokens de Claude)
 async function dataAgent(apiKey) {
   const cached = await getCache("market_data");
   if (cached) return cached;
 
-  const raw = await callClaude(apiKey, {
-    model: HAIKU,
-    system: "Eres un recolector de datos financieros argentinos. Buscá datos actuales con web search. SOLO JSON.",
-    userMsg: DATA_PROMPT,
-    webSearch: true,
-    maxTokens: 2048,
-  });
+  const data = { dolar: {}, indices: {}, tasas: {}, bonos: {}, acciones: {}, noticias: [], _source: "APIs reales", _timestamp: new Date().toISOString() };
 
-  const data = parseJSON(raw);
+  // 1. Dólares de DolarApi.com (gratis, sin key)
+  try {
+    const r = await fetch("https://dolarapi.com/v1/dolares");
+    const dolares = await r.json();
+    for (const d of dolares) {
+      if (d.casa === "oficial") data.dolar.oficial = `$${d.venta}`;
+      if (d.casa === "blue") data.dolar.blue = `$${d.venta}`;
+      if (d.casa === "bolsa") data.dolar.mep = `$${d.venta}`;
+      if (d.casa === "contadoconliqui") data.dolar.ccl = `$${d.venta}`;
+      if (d.casa === "mayorista") data.dolar.mayorista = `$${d.venta}`;
+    }
+    data.indices.ccl = data.dolar.ccl || "N/D";
+  } catch (e) { console.error("DolarAPI error:", e.message); }
+
+  // 2. Tasas e indices de ArgentinaDatos (gratis, sin key)
+  try {
+    const [tasasR, fciR] = await Promise.all([
+      fetch("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo").then(r => r.json()).catch(() => []),
+      fetch("https://api.argentinadatos.com/v1/finanzas/fci/renta-fija/ultimo").then(r => r.json()).catch(() => []),
+    ]);
+    if (tasasR?.length > 0) {
+      const ultima = tasasR[tasasR.length - 1];
+      data.tasas.plazo_fijo = `${ultima.tnaClientes || ultima.valor || "N/D"}%`;
+    }
+    if (fciR?.length > 0) {
+      data.noticias.push(`FCIs renta fija: ${fciR.length} fondos disponibles`);
+    }
+  } catch (e) { console.error("ArgentinaDatos error:", e.message); }
+
+  // 3. Datos estimados que no vienen de API (se llenan con info disponible)
+  data.tasas.bcra = data.tasas.plazo_fijo || "N/D";
+  data.tasas.caucion_1d = "N/D";
+  data.tasas.caucion_7d = "N/D";
+  data.indices.sp500 = "N/D";
+  data.indices.merval = "N/D";
+  data.bonos.al30 = "N/D";
+  data.bonos.gd35 = "N/D";
+  data.acciones = { ggal: "N/D", ypf: "N/D", vist: "N/D", pamp: "N/D" };
+
+  // 4. Agregar contexto para los agentes
+  const brecha = data.dolar.blue && data.dolar.oficial
+    ? `Brecha: ${(((parseFloat(data.dolar.blue.replace("$","")) / parseFloat(data.dolar.oficial.replace("$",""))) - 1) * 100).toFixed(1)}%`
+    : "";
+  if (brecha) data.noticias.push(brecha);
+  data.noticias.push(`Dólar oficial: ${data.dolar.oficial || "N/D"}, Blue: ${data.dolar.blue || "N/D"}, MEP: ${data.dolar.mep || "N/D"}, CCL: ${data.dolar.ccl || "N/D"}`);
+
   await setCache("market_data", data);
   return data;
 }

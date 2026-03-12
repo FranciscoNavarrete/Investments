@@ -111,7 +111,7 @@ export default function App(){
       await loadDaily();
       if (!cancelled) {
         // Esperar 3 seg para que el rate limit se recupere
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 10000));
         await loadHome();
       }
     }
@@ -196,7 +196,7 @@ export default function App(){
 
             <div onClick={openWiz} className="cta" style={{background:"rgba(59,130,246,.04)",border:"1px solid rgba(59,130,246,.08)",borderRadius:14,padding:"16px 20px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}><div><div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:"#7CB3FF",marginBottom:2}}>Analizar mi perfil</div><div style={{fontSize:12,color:"#4B6FA0"}}>6 preguntas → portafolio personalizado</div></div><div style={{width:36,height:36,borderRadius:9,background:"rgba(59,130,246,.07)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#7CB3FF"}}>→</div></div>
 
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{display:"flex",alignItems:"center"}}><h2 style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:600,color:"#D6E4F7"}}>Macro</h2><CacheBadge cached={hC}/></div>{!hL&&<button className="ref" onClick={async()=>{setHd(null);setDaily(null);await loadDaily();await new Promise(r=>setTimeout(r,5000));loadHome();}} style={{background:"rgba(59,130,246,.03)",border:"1px solid rgba(59,130,246,.06)",borderRadius:7,padding:"3px 10px",fontSize:10,color:"#3B6EB5",fontFamily:"'Azeret Mono',monospace"}}>↻</button>}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div style={{display:"flex",alignItems:"center"}}><h2 style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:600,color:"#D6E4F7"}}>Macro</h2><CacheBadge cached={hC}/></div>{!hL&&<button className="ref" onClick={async()=>{setHd(null);setDaily(null);await loadDaily();await new Promise(r=>setTimeout(r,10000));loadHome();}} style={{background:"rgba(59,130,246,.03)",border:"1px solid rgba(59,130,246,.06)",borderRadius:7,padding:"3px 10px",fontSize:10,color:"#3B6EB5",fontFamily:"'Azeret Mono',monospace"}}>↻</button>}</div>
             {hL?<div style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(59,130,246,.04)",borderRadius:14,padding:18,marginBottom:16}}><Sk w="30%" h={14}/><div style={{height:7}}/><Sk w="100%" h={12}/></div>
             :hE?<Err onRetry={()=>{setHE(false);setHd(null);loadHome();}}/>
             :hd?.macro&&<div style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(59,130,246,.04)",borderRadius:14,padding:16,marginBottom:16,animation:"fadeIn .5s"}}><div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}><span style={{background:"rgba(59,130,246,.07)",color:"#7CB3FF",padding:"3px 10px",borderRadius:18,fontSize:10,fontWeight:600,fontFamily:"'Azeret Mono',monospace"}}>{hd.macro.fase?.toUpperCase()}</span><span style={{background:hd.macro.sentimiento?.includes("off")?"rgba(251,113,133,.06)":"rgba(52,211,153,.06)",color:hd.macro.sentimiento?.includes("off")?"#FB7185":"#34D399",padding:"3px 10px",borderRadius:18,fontSize:10,fontWeight:600,fontFamily:"'Azeret Mono',monospace"}}>{hd.macro.sentimiento?.toUpperCase()}</span></div><p style={{fontSize:13,lineHeight:1.65,color:"#8A9DB8"}}>{hd.macro.resumen}</p></div>}
