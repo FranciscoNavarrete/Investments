@@ -1,16 +1,16 @@
 {
   "name": "meridian",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build"
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@netlify/blobs": "^8.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
