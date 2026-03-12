@@ -47,14 +47,14 @@ Respondé ÚNICAMENTE con JSON:
 // RF AGENT: Renta fija (recibe datos, sin web search)
 const RF_PROMPT = `Eres Meridian, analista de renta fija argentino. Hoy ${D}. Con estos datos, analizá renta fija.
 Respondé ÚNICAMENTE con JSON:
-{"resumen":"1 oración panorama","tasas":{"fed":"x%","bcra":"x%","caucion_1d":"x%","caucion_7d":"x%","plazo_fijo":"x%"},"secciones":[{"nombre":"Cauciones","icono":"🔄","items":[{"activo":"...","ticker":"...","tipo":"caución","moneda":"ARS/USD","tir":"x%","duration":"...","riesgo":"bajo","tesis":"1 oración","señal":"compra/acumular/watchlist"},...4]},{"nombre":"Plazo Fijo y FCIs","icono":"🏦","items":[...4]},{"nombre":"Bonos Soberanos","icono":"🏛","items":[...4]},{"nombre":"Letras y Corto Plazo","icono":"📄","items":[...4]}],"movimientos":[{"activo":"...","cambio":"sube/baja","detalle":"1 oración"},...3]}
-4 secciones, 4 items cada una. SOLO JSON.`;
+{"resumen":"1 oración panorama","tasas":{"bcra":"x%","caucion_1d":"x%","caucion_7d":"x%","plazo_fijo":"x%"},"secciones":[{"nombre":"Cauciones","icono":"🔄","items":[{"activo":"...","ticker":"...","tipo":"caución","moneda":"ARS/USD","tir":"x%","duration":"...","riesgo":"bajo","tesis":"1 oración","señal":"compra/acumular/watchlist"},...3]},{"nombre":"Plazo Fijo y FCIs","icono":"🏦","items":[...3]},{"nombre":"Bonos Soberanos","icono":"🏛","items":[...3]}],"movimientos":[{"activo":"...","cambio":"sube/baja","detalle":"1 oración"},...2]}
+3 secciones, 3 items cada una. SOLO JSON.`;
 
 // RV AGENT: Renta variable (recibe datos, sin web search)
 const RV_PROMPT = `Eres Meridian, analista de renta variable argentino. Hoy ${D}. Con estos datos, analizá renta variable.
 Respondé ÚNICAMENTE con JSON:
-{"resumen":"1 oración panorama","indices":{"sp500":{"valor":"...","cambio":"x%"},"merval":{"valor":"...","cambio":"x%"},"ccl":{"valor":"...","cambio":"x%"}},"secciones":[{"nombre":"Acciones Argentinas","icono":"🇦🇷","items":[{"activo":"...","ticker":"...","tipo":"acción","mercado":"AR","precio":"...","cambio_dia":"x%","riesgo":"bajo/medio/alto","tesis":"1 oración","señal":"compra/acumular/watchlist","sector":"..."},...4]},{"nombre":"CEDEARs","icono":"🔗","items":[...4]},{"nombre":"ETFs","icono":"📊","items":[...4]}],"movimientos":[{"activo":"...","cambio":"sube/baja","detalle":"1 oración"},...3]}
-3 secciones, 4 items cada una. SOLO JSON.`;
+{"resumen":"1 oración panorama","indices":{"sp500":{"valor":"...","cambio":"x%"},"merval":{"valor":"...","cambio":"x%"},"ccl":{"valor":"...","cambio":"x%"}},"secciones":[{"nombre":"Acciones Argentinas","icono":"🇦🇷","items":[{"activo":"...","ticker":"...","tipo":"acción","mercado":"AR","precio":"...","cambio_dia":"x%","riesgo":"bajo/medio/alto","tesis":"1 oración","señal":"compra/acumular/watchlist","sector":"..."},...3]},{"nombre":"CEDEARs","icono":"🔗","items":[...3]},{"nombre":"ETFs","icono":"📊","items":[...3]}],"movimientos":[{"activo":"...","cambio":"sube/baja","detalle":"1 oración"},...2]}
+3 secciones, 3 items cada una. SOLO JSON.`;
 
 // CALENDAR AGENT: Calendario económico (sin web search, usa conocimiento)
 const CAL_PROMPT = `Eres Meridian. Hoy ${D}. Listá eventos económicos importantes de los próximos 15 días para inversor argentino.
@@ -190,7 +190,7 @@ async function rfAgent(apiKey, marketData) {
     system: RF_PROMPT,
     userMsg: `Datos de mercado:\n${JSON.stringify(marketData)}\n\nAnalizá renta fija. SOLO JSON.`,
     webSearch: false,
-    maxTokens: 2048,
+    maxTokens: 3500,
   });
   return parseJSON(raw);
 }
@@ -201,7 +201,7 @@ async function rvAgent(apiKey, marketData) {
     system: RV_PROMPT,
     userMsg: `Datos de mercado:\n${JSON.stringify(marketData)}\n\nAnalizá renta variable. SOLO JSON.`,
     webSearch: false,
-    maxTokens: 2048,
+    maxTokens: 3500,
   });
   return parseJSON(raw);
 }
