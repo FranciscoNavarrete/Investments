@@ -151,53 +151,91 @@ async function dataAgent(apiKey) {
   const cached = await getCache("market_data");
   if (cached) return cached;
 
-  const data = { dolar: {}, indices: {}, tasas: {}, bonos: {}, acciones: {}, noticias: [], _source: "APIs reales", _timestamp: new Date().toISOString() };
+  const data = { dolar: {}, indices: {}, tasas: {}, bonos: {}, acciones: {}, noticias: [], fci: {}, _source: "APIs reales", _timestamp: new Date().toISOString() };
 
-  // 1. Dólares de DolarApi.com (gratis, sin key)
-  try {
-    const r = await fetch("https://dolarapi.com/v1/dolares");
-    const dolares = await r.json();
-    for (const d of dolares) {
-      if (d.casa === "oficial") data.dolar.oficial = `$${d.venta}`;
-      if (d.casa === "blue") data.dolar.blue = `$${d.venta}`;
-      if (d.casa === "bolsa") data.dolar.mep = `$${d.venta}`;
-      if (d.casa === "contadoconliqui") data.dolar.ccl = `$${d.venta}`;
-      if (d.casa === "mayorista") data.dolar.mayorista = `$${d.venta}`;
-    }
-    data.indices.ccl = data.dolar.ccl || "N/D";
-  } catch (e) { console.error("DolarAPI error:", e.message); }
+  // Fetch all APIs in parallel
+  const [dolaresR, riesgoPaisR, plazoFijoR, dep30R, inflacionR, fciMMR, fciRFR, rendR] = await Promise.all([
+    fetch("https://dolarapi.com/v1/dolares").then(r=>r.json()).catch(()=>[]),
+    fetch("https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo").then(r=>r.json()).catch(()=>null),
+    fetch("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo").then(r=>r.json()).catch(()=>[]),
+    fetch("https://api.argentinadatos.com/v1/finanzas/tasas/depositos30Dias").then(r=>r.json()).catch(()=>[]),
+    fetch("https://api.argentinadatos.com/v1/finanzas/indices/inflacion").then(r=>r.json()).catch(()=>[]),
+    fetch("https://api.argentinadatos.com/v1/finanzas/fci/mercadoDinero/ultimo").then(r=>r.json()).catch(()=>[]),
+    fetch("https://api.argentinadatos.com/v1/finanzas/fci/rentaFija/ultimo").then(r=>r.json()).catch(()=>[]),
+    fetch("https://api.argentinadatos.com/v1/finanzas/rendimientos").then(r=>r.json()).catch(()=>[]),
+  ]);
 
-  // 2. Tasas e indices de ArgentinaDatos (gratis, sin key)
-  try {
-    const [tasasR, fciR] = await Promise.all([
-      fetch("https://api.argentinadatos.com/v1/finanzas/tasas/plazoFijo").then(r => r.json()).catch(() => []),
-      fetch("https://api.argentinadatos.com/v1/finanzas/fci/renta-fija/ultimo").then(r => r.json()).catch(() => []),
-    ]);
-    if (tasasR?.length > 0) {
-      const ultima = tasasR[tasasR.length - 1];
-      data.tasas.plazo_fijo = `${ultima.tnaClientes || ultima.valor || "N/D"}%`;
-    }
-    if (fciR?.length > 0) {
-      data.noticias.push(`FCIs renta fija: ${fciR.length} fondos disponibles`);
-    }
-  } catch (e) { console.error("ArgentinaDatos error:", e.message); }
+  // 1. Dólares
+  for (const d of dolaresR) {
+    if (d.casa === "oficial") data.dolar.oficial = `$${d.venta}`;
+    if (d.casa === "blue") data.dolar.blue = `$${d.venta}`;
+    if (d.casa === "bolsa") data.dolar.mep = `$${d.venta}`;
+    if (d.casa === "contadoconliqui") data.dolar.ccl = `$${d.venta}`;
+    if (d.casa === "mayorista") data.dolar.mayorista = `$${d.venta}`;
+  }
+  data.indices.ccl = data.dolar.ccl || "N/D";
 
-  // 3. Datos estimados que no vienen de API (se llenan con info disponible)
-  data.tasas.bcra = data.tasas.plazo_fijo || "N/D";
-  data.tasas.caucion_1d = "N/D";
-  data.tasas.caucion_7d = "N/D";
-  data.indices.sp500 = "N/D";
-  data.indices.merval = "N/D";
-  data.bonos.al30 = "N/D";
-  data.bonos.gd35 = "N/D";
+  // 2. Riesgo país
+  if (riesgoPaisR?.valor) {
+    data.indices.riesgo_pais = riesgoPaisR.valor;
+    data.noticias.push(`Riesgo país: ${riesgoPaisR.valor} puntos`);
+  }
+
+  // 3. Tasas
+  if (plazoFijoR?.length > 0) {
+    const ultima = plazoFijoR[plazoFijoR.length - 1];
+    data.tasas.plazo_fijo = `${ultima.tnaClientes || ultima.valor || "N/D"}%`;
+  }
+  if (dep30R?.length > 0) {
+    const ultima = dep30R[dep30R.length - 1];
+    data.tasas.depositos_30d = `${ultima.valor || "N/D"}%`;
+  }
+  data.tasas.bcra = data.tasas.depositos_30d || data.tasas.plazo_fijo || "N/D";
+
+  // 4. Inflación
+  if (inflacionR?.length > 0) {
+    const ultima = inflacionR[inflacionR.length - 1];
+    data.indices.inflacion_mensual = `${ultima.valor}%`;
+    data.noticias.push(`Inflación último dato: ${ultima.valor}% (${ultima.fecha})`);
+  }
+
+  // 5. FCIs Money Market
+  if (fciMMR?.length > 0) {
+    data.fci.money_market = fciMMR.slice(0, 5).map(f => ({ fondo: f.fondo, vcp: f.vcp, ccp: f.ccp, patrimonio: f.patrimonio }));
+  }
+
+  // 6. FCIs Renta Fija
+  if (fciRFR?.length > 0) {
+    data.fci.renta_fija = fciRFR.slice(0, 5).map(f => ({ fondo: f.fondo, vcp: f.vcp, ccp: f.ccp, patrimonio: f.patrimonio }));
+  }
+
+  // 7. Rendimientos de entidades
+  if (rendR?.length > 0) {
+    data.tasas.rendimientos = rendR.slice(0, 5).map(r => ({ entidad: r.entidad, tnaClientes: r.tnaClientes, tnaNoClientes: r.tnaNoClientes }));
+    data.noticias.push(`Mejores tasas plazo fijo: ${rendR[0]?.entidad} ${rendR[0]?.tnaClientes}%`);
+  }
+
+  // 8. Cauciones (no hay API gratuita - se indica)
+  data.tasas.caucion_1d = "Consultar broker";
+  data.tasas.caucion_7d = "Consultar broker";
+
+  // 9. Brecha
+  const blueVal = parseFloat((data.dolar.blue || "0").replace("$", ""));
+  const oficialVal = parseFloat((data.dolar.oficial || "0").replace("$", ""));
+  if (blueVal && oficialVal) {
+    const brecha = (((blueVal / oficialVal) - 1) * 100).toFixed(1);
+    data.indices.brecha = `${brecha}%`;
+    data.noticias.push(`Brecha cambiaria: ${brecha}%`);
+  }
+
+  // 10. Resumen dólar
+  data.noticias.push(`Dólar: Oficial ${data.dolar.oficial || "N/D"} | Blue ${data.dolar.blue || "N/D"} | MEP ${data.dolar.mep || "N/D"} | CCL ${data.dolar.ccl || "N/D"}`);
+
+  // Datos que no tenemos de APIs gratuitas
+  data.indices.sp500 = "N/D (sin API)";
+  data.indices.merval = "N/D (sin API)";
+  data.bonos = { al30: "N/D (sin API)", gd35: "N/D (sin API)" };
   data.acciones = { ggal: "N/D", ypf: "N/D", vist: "N/D", pamp: "N/D" };
-
-  // 4. Agregar contexto para los agentes
-  const brecha = data.dolar.blue && data.dolar.oficial
-    ? `Brecha: ${(((parseFloat(data.dolar.blue.replace("$","")) / parseFloat(data.dolar.oficial.replace("$",""))) - 1) * 100).toFixed(1)}%`
-    : "";
-  if (brecha) data.noticias.push(brecha);
-  data.noticias.push(`Dólar oficial: ${data.dolar.oficial || "N/D"}, Blue: ${data.dolar.blue || "N/D"}, MEP: ${data.dolar.mep || "N/D"}, CCL: ${data.dolar.ccl || "N/D"}`);
 
   await setCache("market_data", data);
   return data;
