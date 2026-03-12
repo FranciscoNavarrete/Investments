@@ -27,10 +27,10 @@ const CORS = {
 /* ═══ PROMPTS POR AGENTE ═══ */
 
 // DATA AGENT: Solo busca datos crudos de mercado (usa web search)
-const DATA_PROMPT = `Hoy ${D}. Buscá con web search los datos de mercado actuales argentinos y globales.
-Respondé ÚNICAMENTE con JSON (sin backticks):
-{"indices":{"sp500":"valor","merval":"valor","ccl":"valor ARS"},"tasas":{"fed":"x%","bcra":"x%","caucion_1d_ars":"x%","caucion_7d_ars":"x%","caucion_1d_usd":"x%","plazo_fijo":"x%"},"bonos":{"al30":{"precio":"x","tir":"x%"},"gd35":{"precio":"x","tir":"x%"},"treasury_10y":{"tir":"x%"}},"acciones":{"ggal":"precio","ypf":"precio","vist":"precio","pamp":"precio","bbar":"precio"},"cedears_top":["ticker1","ticker2","ticker3","ticker4"],"noticias":["noticia 1 del día","noticia 2","noticia 3"],"dolar":{"oficial":"x","mep":"x","ccl":"x","blue":"x"}}
-DATOS REALES actuales. SOLO JSON.`;
+const DATA_PROMPT = `Hoy ${D}. Datos de mercado argentino y global.
+SOLO JSON:
+{"indices":{"sp500":"val","merval":"val","ccl":"val"},"tasas":{"bcra":"x%","caucion_1d":"x%","caucion_7d":"x%","plazo_fijo":"x%"},"bonos":{"al30":"precio","gd35":"precio"},"acciones":{"ggal":"precio","ypf":"precio","vist":"precio","pamp":"precio"},"dolar":{"oficial":"x","mep":"x","ccl":"x"},"noticias":["noticia1","noticia2"]}
+SOLO JSON.`;
 
 // DAILY AGENT: Resumen del día (recibe datos, sin web search)
 const DAILY_PROMPT = `Eres Meridian. Hoy ${D}. Con estos datos de mercado, hacé un resumen del día.
@@ -97,7 +97,7 @@ function parseJSON(text) {
   throw new Error("No JSON found in response");
 }
 
-async function callClaude(apiKey, { model = HAIKU, system, userMsg, webSearch = false, maxTokens = 4096 }) {
+async function callClaude(apiKey, { model = HAIKU, system, userMsg, webSearch = false, maxTokens = 2048 }) {
   const body = {
     model,
     max_tokens: maxTokens,
@@ -146,16 +146,17 @@ async function setCache(key, data) {
 
 /* ═══ AGENTS ═══ */
 
-// Data Agent: 1 web search para todos los datos de mercado
+// Data Agent: datos de mercado (sin web search - usa conocimiento del modelo)
 async function dataAgent(apiKey) {
   const cached = await getCache("market_data");
   if (cached) return cached;
 
   const raw = await callClaude(apiKey, {
     model: HAIKU,
-    system: "Eres un recolector de datos financieros. Solo devolvés JSON con datos actuales. SOLO JSON.",
+    system: "Eres un recolector de datos financieros argentinos. Devolvé datos lo más actuales posible. SOLO JSON.",
     userMsg: DATA_PROMPT,
-    webSearch: true,
+    webSearch: false,
+    maxTokens: 2048,
   });
 
   const data = parseJSON(raw);
@@ -189,7 +190,7 @@ async function rfAgent(apiKey, marketData) {
     system: RF_PROMPT,
     userMsg: `Datos de mercado:\n${JSON.stringify(marketData)}\n\nAnalizá renta fija. SOLO JSON.`,
     webSearch: false,
-    maxTokens: 4096,
+    maxTokens: 2048,
   });
   return parseJSON(raw);
 }
@@ -200,7 +201,7 @@ async function rvAgent(apiKey, marketData) {
     system: RV_PROMPT,
     userMsg: `Datos de mercado:\n${JSON.stringify(marketData)}\n\nAnalizá renta variable. SOLO JSON.`,
     webSearch: false,
-    maxTokens: 4096,
+    maxTokens: 2048,
   });
   return parseJSON(raw);
 }
@@ -215,14 +216,14 @@ async function calAgent(apiKey) {
   return parseJSON(raw);
 }
 
-// Portfolio Agent: usa Sonnet + web search (solo cuando el usuario lo pide)
+// Portfolio Agent: usa Sonnet (solo cuando el usuario lo pide)
 async function portfolioAgent(apiKey, profile) {
   const raw = await callClaude(apiKey, {
     model: SONNET,
     system: PORTFOLIO_PROMPT,
     userMsg: profile,
-    webSearch: true,
-    maxTokens: 8192,
+    webSearch: false,
+    maxTokens: 2048,
   });
   return cleanResponse(raw);
 }
